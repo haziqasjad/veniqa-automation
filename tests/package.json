@@ -9,6 +9,8 @@
   "description": "",
   "devDependencies": {
     "@playwright/test": "^1.59.1",
-    "@types/node": "^25.6.0"
+    "@types/node": "^25.6.0",
+    "bcryptjs": "^2.4.3",
+    "mongodb": "^6.0.0"
   }
 }
