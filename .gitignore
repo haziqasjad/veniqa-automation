@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Environment / secrets
+.env
+
+# Playwright artifacts
+tests/test-results/
+tests/playwright-report/
+healer/results.json
+
+# Healer runtime output
+healer/snapshots/
+healer/log/
+healer/healing-log.json

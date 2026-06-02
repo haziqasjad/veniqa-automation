@@ -1,0 +1,36 @@
+contract: homepage-flow
+owner: qa-lead
+last_verified: 2026-05-22
+stale_after: 30 days
+
+elements:
+  - id: page-title
+    selector: "expect(page).toHaveTitle('Veniqa New York')"
+    intent: The browser tab title confirming the correct app has loaded.
+    location_hint: Browser tab / document title.
+    heal_hint: >
+      Not a DOM element — this is the <title> tag. If the brand name changed,
+      look for the new name in the page title and update the assertion.
+    escalate_if: >
+      Page title is a generic error (e.g. "404", "Error", "Untitled") — the
+      app itself is not loading correctly.
+
+  - id: nav-women-link
+    selector: "getByRole('link', { name: 'Women' })"
+    intent: >
+      Top navigation link for the Women's category. Confirms the main product
+      category navigation is rendered on the homepage.
+    location_hint: Top navigation bar, between category links.
+    heal_hint: >
+      Look for a nav link with text "Women", "Womens", or "Women's".
+      May be inside a dropdown or mega-menu if the nav was redesigned.
+    escalate_if: >
+      No category navigation links exist on the homepage at all. Indicates
+      the nav has been replaced or the page is in an error state.
+
+  - id: nav-login-link
+    selector: "getByRole('link', { name: 'Login' })"
+    intent: Login link in the nav bar confirming the unauthenticated state UI is correct.
+    location_hint: Top-right navigation bar.
+    heal_hint: Nav link with text "login", "sign in", or "account".
+    escalate_if: No auth-related link in the nav — structural nav change.

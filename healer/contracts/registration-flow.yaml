@@ -1,0 +1,78 @@
+contract: registration-flow
+owner: qa-lead
+last_verified: 2026-05-22
+stale_after: 30 days
+
+elements:
+  - id: nav-login-link
+    selector: "getByRole('link', { name: 'Login' })"
+    intent: Navigation bar login link used to reach the login/registration page.
+    location_hint: Top-right navigation bar.
+    heal_hint: Nav link with text containing "login", "sign in", or "account".
+    escalate_if: No authentication-related link in the nav at all.
+
+  - id: register-switch-link
+    selector: "getByText('New User? Register here.')"
+    intent: >
+      Link on the login page that switches the form to registration mode.
+      Toggles the view from login form to registration form.
+    location_hint: Below the login form fields.
+    heal_hint: >
+      Look for a link or button with text about registering, signing up,
+      or creating an account. May say "Register", "Sign up", "Create account".
+    escalate_if: >
+      No way to reach the registration form from the login page at all.
+      Indicates a navigation flow change.
+
+  - id: register-name-input
+    selector: "#name"
+    intent: Full name input field on the registration form.
+    location_hint: Registration form, first field.
+    heal_hint: Input with id/name/placeholder containing "name" (not email).
+    escalate_if: No full name field on the registration form.
+
+  - id: register-email-input
+    selector: "#username"
+    intent: Email address input on the registration form.
+    location_hint: Registration form, after the name field.
+    heal_hint: Input with type="email" or placeholder/name containing "email".
+    escalate_if: No email input on the registration form.
+
+  - id: register-password-input
+    selector: "#password"
+    intent: Password input on the registration form.
+    location_hint: Registration form, after the email field.
+    heal_hint: First input[type="password"] on the registration form.
+    escalate_if: No password input on the registration form.
+
+  - id: register-confirm-password-input
+    selector: "#confirmPassword"
+    intent: Password confirmation input — must match the password field.
+    location_hint: Registration form, immediately after the password field.
+    heal_hint: >
+      Second input[type="password"] on the form, or one with id/name containing
+      "confirm" or "repeat".
+    escalate_if: No confirm password field — indicates form has changed structure.
+
+  - id: register-phone-input
+    selector: "#phone"
+    intent: Phone number input on the registration form.
+    location_hint: Registration form, after confirm password.
+    heal_hint: Input with id/name/placeholder containing "phone" or "mobile".
+    escalate_if: No phone input — may have been made optional or removed.
+
+  - id: register-submit-button
+    selector: "getByRole('button', { name: 'Register' })"
+    intent: Submit button that creates the new user account.
+    location_hint: Bottom of the registration form.
+    heal_hint: Button with text "register", "sign up", "create account", or "submit".
+    escalate_if: No submit button on the registration form.
+
+  - id: register-success-message
+    selector: "getByText('User successfully created. Please check your inbox to confirm email')"
+    intent: Success message shown after a new account is created.
+    location_hint: Toast or inline message, appears after form submission.
+    heal_hint: Any message containing "created", "registered", "check your inbox", or "confirm".
+    escalate_if: >
+      No success message after valid registration. Indicates a backend issue
+      (duplicate email, validation failure, or API error).

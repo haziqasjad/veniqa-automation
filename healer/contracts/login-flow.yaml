@@ -1,0 +1,69 @@
+contract: login-flow
+owner: qa-lead
+last_verified: 2026-05-22
+stale_after: 30 days
+
+elements:
+  - id: nav-login-link
+    selector: "getByRole('link', { name: 'Login' })"
+    intent: Navigation bar login link. Present only when logged out.
+    location_hint: Top-right navigation bar.
+    heal_hint: Nav link with text containing "login", "sign in", or "account".
+    escalate_if: No authentication-related link exists in the nav at all.
+
+  - id: login-email-input
+    selector: "#username"
+    intent: Email address input on the login form.
+    location_hint: Login form, first field.
+    heal_hint: Input with type="email" or placeholder/name containing "email".
+    escalate_if: No email input exists on the login form.
+
+  - id: login-password-input
+    selector: "[name='password']"
+    intent: Password input on the login form.
+    location_hint: Login form, second field.
+    heal_hint: input[type="password"] on the login form.
+    escalate_if: No password input exists on the login form.
+
+  - id: login-submit-button
+    selector: "getByRole('button', { name: 'Login' })"
+    intent: Submit button for the login form.
+    location_hint: Login form, below the password field.
+    heal_hint: Button with text "login", "sign in", or "submit" inside the form.
+    escalate_if: No submit button inside the login form.
+
+  - id: login-success-toast
+    selector: "getByText('Successfully logged in')"
+    intent: Toast confirming successful login.
+    location_hint: Top-right, appears briefly.
+    heal_hint: Any toast or alert with text about successful login.
+    escalate_if: No success message after submitting valid credentials — backend issue.
+
+  - id: account-dropdown-toggle
+    selector: "a.dropdown-toggle"
+    intent: >
+      Account menu toggle in the nav bar. Clicking it reveals the dropdown menu
+      with Logout and other account options. Visible only when logged in.
+    location_hint: Top-right nav bar, replaces the Login link after authentication.
+    heal_hint: >
+      Look for a dropdown trigger (button or link with class "dropdown-toggle",
+      or an element with aria-haspopup) in the top-right nav area.
+    escalate_if: >
+      No dropdown or account menu element exists after login. Indicates the
+      post-login nav state has fundamentally changed.
+
+  - id: logout-menu-item
+    selector: "getByRole('menuitem', { name: 'Logout' })"
+    intent: Logout option inside the account dropdown menu.
+    location_hint: Inside the dropdown that opens from the account toggle.
+    heal_hint: >
+      Look for a menuitem or link with text "logout", "sign out", or "log out"
+      inside the dropdown menu.
+    escalate_if: No logout option anywhere in the account dropdown.
+
+  - id: logout-success-toast
+    selector: "getByText('You have been successfully logged out.')"
+    intent: Toast confirming successful logout.
+    location_hint: Top-right, appears briefly after logout.
+    heal_hint: Any toast or message with text about logout or signing out.
+    escalate_if: No confirmation after clicking logout — backend session issue.

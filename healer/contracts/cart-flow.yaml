@@ -1,0 +1,72 @@
+contract: cart-flow
+owner: qa-lead
+last_verified: 2026-05-22
+stale_after: 30 days
+
+elements:
+  - id: nav-login-link
+    selector: "getByRole('link', { name: 'Login' })"
+    intent: >
+      The login link in the top navigation bar. Clicking it navigates to the
+      login/registration page. Present only when no user is logged in.
+    location_hint: Top-right navigation bar. A link element, not a button.
+    heal_hint: >
+      Look for a nav link whose visible text contains "login", "sign in", or "account".
+      If multiple candidates, prefer the one in the top-right corner of the nav.
+    escalate_if: >
+      No link or button anywhere on the page relates to login or authentication.
+      This indicates an auth flow redesign — not a text rename.
+
+  - id: login-email-input
+    selector: "#username"
+    intent: The email address input field on the login form.
+    location_hint: Login form, first input field.
+    heal_hint: >
+      Look for an input with type="email" or placeholder containing "email".
+      May also have name="email" or id="email".
+    escalate_if: No input field for email exists on the login form at all.
+
+  - id: login-password-input
+    selector: "[name='password']"
+    intent: The password input field on the login form.
+    location_hint: Login form, second input field.
+    heal_hint: Look for input[type="password"] on the login form.
+    escalate_if: No password input exists on the login form.
+
+  - id: login-submit-button
+    selector: "getByRole('button', { name: 'Login' })"
+    intent: The submit button that submits the login form.
+    location_hint: Login form, below the password field.
+    heal_hint: >
+      Look for a button with text containing "login", "sign in", or "submit"
+      inside the login form.
+    escalate_if: No submit button exists inside the login form.
+
+  - id: login-success-toast
+    selector: "getByText('Successfully logged in')"
+    intent: Toast notification confirming successful login.
+    location_hint: Typically top-right corner, appears briefly after login.
+    heal_hint: Look for any toast or alert element with text about successful login.
+    escalate_if: >
+      No success confirmation appears at all after submitting valid credentials.
+      Indicates a backend auth failure, not a selector issue.
+
+  - id: add-to-cart-button
+    selector: "getByRole('button', { name: 'Add to Cart' })"
+    intent: Button on the product detail page that adds the item to the cart.
+    location_hint: Product detail page, near the product image and price.
+    heal_hint: >
+      Look for a button with text containing "add to cart", "add", or "cart".
+      May also be an icon button with aria-label related to cart.
+    escalate_if: >
+      No add-to-cart control exists on the product page. Indicates the product
+      is out of stock, removed, or the page structure has fundamentally changed.
+
+  - id: add-to-cart-confirmation
+    selector: "getByText('Added to Cart')"
+    intent: Confirmation message shown after an item is successfully added to the cart.
+    location_hint: Toast or inline message near the cart icon or product area.
+    heal_hint: Look for any toast or message containing "cart", "added", or "success".
+    escalate_if: >
+      No confirmation appears after clicking add-to-cart with valid credentials.
+      Indicates a backend cart API failure.
