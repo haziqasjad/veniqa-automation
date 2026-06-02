@@ -1,0 +1,143 @@
+name: healer-ci
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [veniqa-push]
+
+# Only one healer run per branch at a time.
+# A new push to the same branch cancels the previous in-flight run.
+concurrency:
+  group: healer-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-heal:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Checkout ──────────────────────────────────────────────────────────────
+
+      - name: Checkout veniqa-automation (this repo)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.HEALER_PAT }}
+
+      - name: Checkout veniqa (app repo, for docker-compose)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/veniqa
+          path: veniqa
+          token: ${{ secrets.HEALER_PAT }}
+
+      - name: Checkout decode-base
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/decode-base
+          path: decode-base
+          token: ${{ secrets.DECODE_BASE_READ_PAT }}
+
+      # ── Node.js setup ─────────────────────────────────────────────────────────
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install test dependencies
+        working-directory: tests
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: tests
+        run: npx playwright install chromium --with-deps
+
+      - name: Install healer dependencies
+        working-directory: healer
+        run: npm ci
+
+      # ── Docker stack ──────────────────────────────────────────────────────────
+
+      - name: Start Docker stack
+        working-directory: veniqa
+        run: docker compose up -d
+
+      - name: Wait for shopping frontend
+        run: |
+          echo "Waiting for http://localhost:5201 ..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:5201 > /dev/null; then
+              echo "Frontend up after $((i * 5))s"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "Frontend did not start in 150s — dumping logs"
+              cd veniqa && docker compose logs
+              exit 1
+            fi
+            sleep 5
+          done
+
+      # ── Healer ────────────────────────────────────────────────────────────────
+      # run.js runs Playwright internally, then triages + heals any failures.
+      # It exits 0 on clean runs and on handled failures (healed/escalated/skipped).
+      # It exits 1 only on a fatal crash (environment or script error).
+
+      - name: Run healer (tests + healing)
+        id: healer
+        run: node healer/run.js
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GITHUB_TOKEN: ${{ secrets.HEALER_PAT }}
+          GITHUB_REPO: ${{ github.repository }}
+          DECODE_BASE_PATH: ${{ github.workspace }}/decode-base
+          PLAYWRIGHT_HTML_OPEN: never
+          CI: true
+
+      # ── Push healer commits ───────────────────────────────────────────────────
+      # Only runs when run.js patched at least one test.
+      # Force-pull-rebase before push: if another developer pushed in the meantime,
+      # we rebase on top of their commits. If rebase fails, we abandon — never force-push.
+
+      - name: Push healer commits
+        if: steps.healer.outputs.patched == 'true'
+        run: |
+          git config user.name "healer-bot"
+          git config user.email "healer-bot@users.noreply.github.com"
+          git fetch origin
+          git rebase origin/${{ github.ref_name }} || {
+            echo "[healer-ci] Rebase conflict after fetch — abandoning push (not force-pushing)"
+            exit 0
+          }
+          git push origin HEAD:${{ github.ref_name }}
+
+      # ── Teardown + artifacts ──────────────────────────────────────────────────
+      # if: always() ensures these run even when the healer step crashes.
+
+      - name: Tear down Docker stack
+        if: always()
+        working-directory: veniqa
+        run: docker compose down -v
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: tests/playwright-report/
+          retention-days: 30
+
+      - name: Upload heal log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: heal-log
+          path: healer/log/
+          retention-days: 30
