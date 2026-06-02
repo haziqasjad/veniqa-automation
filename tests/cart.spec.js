@@ -10,7 +10,7 @@ test('logged in user can add item to cart', async ({ page }) => {
     await page.goto('/');
 
     // Click the Login link in the nav bar
-    await page.getByRole('link', { name: 'Login-BROKEN' }).click();
+    await page.getByRole('link', { name: 'Login' }).click();
 
     // Fill in the email address field
     await page.locator('#username').fill('test@test.com');
