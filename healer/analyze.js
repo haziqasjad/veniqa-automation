@@ -7,6 +7,8 @@ const DOM_SNAPSHOT_LIMIT = 15000;
 const TEST_SOURCE_LIMIT = 5000;
 const OLLAMA_URL = 'http://localhost:11434/v1/chat/completions';
 const OLLAMA_MODEL = 'llama3.1:8b';
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_MODEL = 'qwen-2.5-coder-32b';
 const CLAUDE_MODEL = 'claude-sonnet-4-6';
 
 const VALID_SOURCE_TAGS = new Set([
@@ -335,14 +337,19 @@ async function analyze(triageResult, loaderResult = {}) {
     .join(', ');
 
   const usingClaude = !!process.env.ANTHROPIC_API_KEY;
-  const modelLabel = usingClaude ? `Claude API (${CLAUDE_MODEL})` : `Ollama (${OLLAMA_MODEL})`;
+  const usingGroq = !usingClaude && (process.env.LLM_PROVIDER === 'groq' || !!process.env.GROQ_API_KEY);
+  const modelLabel = usingClaude
+    ? `Claude API (${CLAUDE_MODEL})`
+    : usingGroq
+    ? `Groq (${GROQ_MODEL})`
+    : `Ollama (${OLLAMA_MODEL})`;
   console.log(`[analyze] Sending grounded prompt to ${modelLabel}`);
   console.log(`[analyze] Test: "${testTitle}"`);
   console.log(`[analyze] Sources loaded: ${sourceCount || 'contracts only'}`);
 
   let raw;
   if (usingClaude) {
-    // Use Claude API when a key is available (more reliable citation following)
+    // Use Claude API when a key is available (local dev override)
     const Anthropic = require('@anthropic-ai/sdk');
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const message = await client.messages.create({
@@ -351,6 +358,26 @@ async function analyze(triageResult, loaderResult = {}) {
       messages: [{ role: 'user', content: prompt }],
     });
     raw = message.content[0].text.trim();
+  } else if (usingGroq) {
+    // Use Groq free tier in CI (OpenAI-compatible, no download, no cost)
+    const response = await fetch(GROQ_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1024,
+        stream: false,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(`Groq API error: ${response.status} ${response.statusText}`);
+    }
+    const data = await response.json();
+    raw = data.choices[0].message.content.trim();
   } else {
     // Fall back to local Ollama
     const response = await fetch(OLLAMA_URL, {
